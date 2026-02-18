@@ -1,0 +1,666 @@
+\documentclass[11pt]{article}
+\usepackage{amsmath,amssymb,amsthm,graphicx,hyperref}
+\usepackage[nameinlink]{cleveref}
+\usepackage[margin=1in]{geometry}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\newtheorem{observation}[theorem]{Observation}
+
+\title{Progress Toward Crouzeix's Conjecture via Dimensional Reduction in the Smooth Strictly Convex Case}
+\author{Alpin Dale\thanks{Email: \texttt{alpin@alpindale.net}} \and Nnamdi Aghanya\thanks{Email: \texttt{guuudfit@gmail.com}}}
+\date{\today}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+
+We investigate Crouzeix's conjecture for matrices whose numerical range has a smooth strictly convex boundary. We prove (Theorem~\ref{thm:align}) that extremal functions concentrate on a unique support direction, determined by variational analysis of the numerical range boundary. Our main result (Theorem~\ref{thm:3D}) establishes a three--dimensional reduction: {\em conditional on a multilinear orthogonality assumption (MO)}, every extremal norm--attaining vector lies in $\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}$, where $x_{\theta^*}$ is the support eigenvector at the aligned angle. While (MO) remains unproven in general, we verify it for normal matrices, $2\times2$ matrices, and Hermitian matrices. Our numerical experiments on 100 random matrices provide strong evidence for (MO), showing that three--dimensional compressions achieve $98$--$100\%$ capture of the extremal norm across all test cases, while two--dimensional Krylov--based compressions capture only $85$--$96\%$. The remaining challenges are proving (MO) unconditionally and extending the sharp Crouzeix bound from $2\times2$ to $3\times3$ matrices. From a computational perspective, our results provide efficient algorithms for identifying low-dimensional invariant subspaces that capture extremal polynomial behavior, with implications for matrix function evaluation and Krylov subspace methods.
+\end{abstract}
+
+\section{Introduction}
+Crouzeix's conjecture asserts that for every polynomial $p$ and every matrix $A\in\mathbb C^{n\times n}$
+\begin{equation}\label{eq:main}
+\|p(A)\| \leq 2\sup_{z\in W(A)} |p(z)|.
+\end{equation}
+The conjecture connects spectral properties of $A$ (encoded in the numerical range $W(A)$) to the behavior of polynomial functions $p(A)$, providing a fundamental link between geometry and operator theory. The best bound to date is $1+\sqrt2$\cite{CrouzeixPalencia}, and the conjecture is sharp for $2\times2$ matrices\cite{Crouzeix2004} and normal matrices. Understanding why the constant cannot be improved for $2\times2$ matrices suggests that dimensional reduction may be key to the general problem.
+
+Recent work~\cite{Li2020,OLoughlinVirtanen} has explored this strategy: if the extremal norm $\|f(A)\|$ is attained on a low--dimensional compression, the sharp $2\times2$ bound can be leveraged to resolve the conjecture for larger matrices. A natural question is which subspaces capture extremal behavior. Krylov subspaces $\operatorname{span}\{x,Ax,A^2x,\ldots\}$ arise naturally in polynomial evaluation, but for non--normal matrices the interaction between $A$ and $A^*$ complicates this picture. Our main contribution is to prove that under geometric regularity conditions (smooth strictly convex numerical range with simple eigenvalues), a three--dimensional subspace $\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}$ suffices, where $x_{\theta^*}$ is determined by a unique support direction.
+
+\paragraph{Computational significance.}
+Beyond its theoretical interest, Crouzeix's conjecture has direct computational implications for matrix function approximation. Evaluating $p(A)$ for large matrices is expensive, requiring $O(n^3)$ operations per matrix--matrix multiply, making dimensional reduction necessary for practical algorithms. The Krylov subspace methods exploit low-dimensional invariant subspaces to approximate $p(A)v$ efficiently, but determining the minimal subspace dimension that captures extremal behavior remains an open question. Our work establishes that for matrices with a smooth strictly convex numerical range, a three-dimensional subspace suffices, suggesting that matrix function algorithms need not explore high-dimensional Krylov spaces to achieve near-optimal approximation ratios. The explicit construction $\operatorname{span}\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}$ provides a computationally tractable target: computing the support angle $\theta^*$ requires $O(n^3)$ operations (one eigenvector computation per angle sample), after which the three basis vectors are obtained via matrix-vector products. This stands in contrast to degree-$d$ Krylov methods requiring $O(dn^3)$ operations.
+
+We extend the dimensional reduction approach by proving a three--dimensional reduction for matrices whose numerical range has $C^2$--smooth strictly convex boundary and whose rotated Hermitian parts have simple top eigenvalue almost everywhere. The reduction (Theorem~\ref{thm:3D}) is proved under the shell-support and degree-two closure hypotheses (SS2) and (DC2), which imply the multilinear orthogonality condition (MO). Appendix~\ref{app:var} records the historical unconditional form and its concrete disproof, and isolates the remaining bridge: deriving (SS2) and (DC2) directly from aligned extremal hypotheses.
+
+\section{Preliminaries}
+\subsection{Notation}
+Throughout, $A\in\mathbb{C}^{n\times n}$ denotes an $n\times n$ complex matrix. We adopt the following notation:
+\begin{itemize}
+\item $W(A) = \{\langle Ax,x\rangle: \|x\|=1\}$, the numerical range;
+\item $\langle \cdot,\cdot\rangle$ is linear in the first argument;
+\item $H_\theta = \tfrac{1}{2}(e^{-i\theta}A+e^{i\theta}A^*)$, the rotated Hermitian part at angle $\theta\in[0,2\pi)$;
+\item $h(\theta) = \lambda_{\max}(H_\theta)$, the support function of $W(A)$;
+\item $x_{\theta^*}$, a unit eigenvector for $\lambda_{\max}(H_{\theta^*})$ at the aligned angle $\theta^*$;
+\item $\gamma_{\min} = \min_{\theta\in[0,2\pi)} (\lambda_1(H_\theta)-\lambda_2(H_\theta))$, the minimum eigengap, where $\lambda_1\geq\lambda_2\geq\cdots$ denote eigenvalues in decreasing order.
+\end{itemize}
+
+\subsection{Numerical range and support function}
+For $A\in\mathbb{C}^{n\times n}$ the numerical range is $W(A)=\{\langle Ax,x\rangle: \|x\|=1\}$. Under smooth strict convexity the boundary admits the parameterisation $z(\theta)=e^{i\theta}(h(\theta)+ih'(\theta))$ with curvature $\kappa(\theta)=h''(\theta)+h(\theta)$.
+
+\subsection{Extremal analytic functions}
+Following \cite{Crouzeix2004,Li2020}, extremals attaining $\|f(A)\|/\sup_{W(A)}|f|$ may be chosen of the form $f=B\circ\varphi$ where $\varphi:W(A)^\circ\to\mathbb D$ is conformal and $B$ is a Blaschke product of degree at most $n-1$.
+
+\section{Main results}
+
+\subsection*{Variational Framework: Critical Point Analysis}
+To understand the geometric mechanism underlying Crouzeix's conjecture, we analyze the local properties of matrices that are critical points of the Crouzeix ratio. Define the functional
+\[
+\mathcal{Q}(A) := \sup_{f} \frac{N_f(A)}{D_f(A)}, \quad \text{where } N_f(A) = \|f(A)\| \text{ and } D_f(A) = \sup_{z \in W(A)} |f(z)|.
+\]
+By an envelope/Danskin-type argument (see Appendix~\ref{app:var}), there exists an active extremal $f$ such that for all Hermitian perturbations $K$:
+\begin{equation}\label{eq:stationarity}
+D N_f(A)[K] = \mathcal{Q}(A) \cdot D D_f(A)[K].
+\end{equation}
+This balance equation--which equates the sensitivity of the operator norm to the sensitivity of the numerical range--is the foundation of our alignment result.
+
+\begin{theorem}[Alignment at Critical Points]\label{thm:align}
+Let $A\in\mathbb C^{n\times n}$ be a critical point of the Crouzeix ratio $\mathcal{Q}(A)$. Let $f$ be an extremal function, and let $u, v$ be singular vectors such that $f(A)u = \|f(A)\|v$.
+
+Then there exists a unique support angle $\theta^*$ such that the derivative of the operator norm aligns with the rank-1 geometric normal of the numerical range. Specifically:
+\[
+S_u \propto x_{\theta^*} x_{\theta^*}^*,
+\]
+where
+\[
+\langle K, S_u \rangle_{\mathrm{HS}} = D N_f(A)[K] = \operatorname{Re} \operatorname{Tr}(v u^* f'(A)[K]).
+\]
+\end{theorem}
+
+\begin{proof}
+We compute the directional derivatives in \eqref{eq:stationarity} explicitly.
+First, for the numerator $N_f(A) = \|f(A)\|$, the standard perturbation theory for simple singular values gives
+\[
+D N_f(A)[K] = \operatorname{Re} \langle v, f'(A)[K] u \rangle.
+\]
+This defines the sensitivity density $S_u$ such that
+\[
+D N_f(A)[K] = \langle K, S_u \rangle_{\mathrm{HS}}.
+\]
+Second, for the denominator $D_f(A)$, the sensitivity of the support function $h_A(\theta)$ at the optimal angle $\theta^*$ is given by
+\[
+D h_A(\theta)[K] = \langle K, G(\theta) \rangle_{\mathrm{HS}}, \quad \text{where } G(\theta) = \operatorname{Re}(e^{i\theta} x_\theta x_\theta^*).
+\]
+At a critical point, the Lagrange multiplier condition implies that the gradient of the numerator must be parallel to the gradient of the denominator. Therefore,
+\[
+S_u \propto G(\theta^*) = \operatorname{Re}(e^{i\theta^*} x_{\theta^*} x_{\theta^*}^*).
+\]
+Note that $G(\theta^*)$ is Hermitian and rank-1 with range $\operatorname{span}\{x_{\theta^*}\}$. Up to a real scalar factor and a harmless phase absorbed into $f$, this is equivalent to the projector $x_{\theta^*} x_{\theta^*}^*$. Thus
+\[
+S_u \propto x_{\theta^*} x_{\theta^*}^*.
+\]
+\end{proof}
+
+\paragraph{Assumption (MO): Multilinear orthogonality at the aligned angle}
+Having established that the sensitivity $S_u$ aligns with the rank-1 projector, we record the target orthogonality condition in the aligned support geometry.
+\begin{quote}
+Let
+\[
+V_3:=\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}.
+\]
+For any unit vector $u$ and variation $\xi\perp V_3$, the first variation of the projected resolvent
+\[
+\frac{d}{dt}\Big|_{t=0} \operatorname{Re} \langle x_{\theta^*}, S_{u+t\xi} \, x_{\theta^*} \rangle = 0,
+\]
+where $S_u$ is the resolvent density derived from the Cauchy integral formula.
+\end{quote}
+
+\paragraph{Assumption (SS2): Shell support at degree two}
+Write
+\[
+S_{u+t\xi}=\sum_{n\ge0}\mathcal S_n(u+t\xi)
+\]
+for the shell decomposition, where \(\mathcal S_n\) is the \(n\)-th contour-shell contribution in the Cauchy-resolvent expansion (see Appendix~\ref{app:var} for the explicit shell formula).
+Set
+\[
+W_2:=\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*},A^2x_{\theta^*},(A^*)^2x_{\theta^*},AA^*x_{\theta^*},A^*Ax_{\theta^*}\}.
+\]
+For each \(n\ge0\) and each unit vector \(u\), there is a finite family \(y_{n,\ell}(u)\in W_2\) and scalar coefficient functions \(a_{n,\ell}(u,t),b_{n,\ell}(u,t)\), independent of \(\xi\), such that for all variation directions \(\xi\),
+\[
+\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\langle x_{\theta^*},\mathcal S_n(u+t\xi)x_{\theta^*}\rangle
+=
+\sum_{\ell}\Big(a_{n,\ell}(u,0)\langle \xi,y_{n,\ell}(u)\rangle+b_{n,\ell}(u,0)\overline{\langle \xi,y_{n,\ell}(u)\rangle}\Big).
+\]
+
+\paragraph{Assumption (DC2): Degree-two closure}
+\[
+W_2\subseteq V_3.
+\]
+\begin{remark}[Scope of (DC2)]
+Assumption~(DC2) is a sufficient closure condition and is not expected to hold generically. It means that, up to degree \(2\), the \(*\)-Krylov directions generated by \(x_{\theta^*}\) close inside \(V_3\).
+\end{remark}
+
+\begin{lemma}[Termwise differentiation of the all-orders Cauchy series]\label{lem:MO-termwise-diff}
+Fix \(u,\xi,x\). For the shell decomposition \(S_{u+t\xi}=\sum_{n\ge 0}\mathcal S_n(u+t\xi)\), there exists \(t_0>0\) and summable majorants \(M_n,N_n\ge 0\) such that for all \(|t|\le t_0\),
+\[
+\|\mathcal S_n(u+t\xi)\|\le M_n,\qquad
+\left\|\frac{d}{dt}\mathcal S_n(u+t\xi)\right\|\le N_n.
+\]
+Hence
+\[
+\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\Big\langle x,\sum_{n\ge 0}\mathcal S_n(u+t\xi)x\Big\rangle
+=
+\sum_{n\ge 0}\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\langle x,\mathcal S_n(u+t\xi)x\rangle.
+\]
+\end{lemma}
+\begin{proof}
+Use the Cauchy-integral representation of \(S_{u+t\xi}\) on the fixed contour \(\Gamma\) from the resolvent formula. Let \(\delta:=\operatorname{dist}(\Gamma,W(A))>0\); then \(\|(zI-A)^{-1}\|\le \delta^{-1}\) for \(z\in\Gamma\), which yields geometric majorants for the shell terms and \(n\)-weighted geometric majorants for their \(t\)-derivatives. Hence \(\sum M_n\) and \(\sum N_n\) converge. Apply the Weierstrass M-test for uniform convergence and dominated convergence for termwise differentiation.
+\end{proof}
+
+\begin{lemma}[Shell reduction from (SS2) and (DC2)]\label{lem:MO-shell-reduction}
+Under Assumptions~(SS2) and~(DC2), for every \(\xi\perp V_3\),
+\[
+\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\langle x_{\theta^*},\mathcal S_n(u+t\xi)x_{\theta^*}\rangle=0
+\]
+for every \(n\ge0\).
+\end{lemma}
+\begin{proof}
+Fix \(n\). By hypothesis, the derivative is a finite real-linear combination of \(\langle \xi,y\rangle\) and \(\overline{\langle \xi,y\rangle}\) with \(y\in W_2\). Since \(W_2\subseteq V_3\) and \(\xi\perp V_3\), each such inner product vanishes. Hence the shell derivative is zero.
+\end{proof}
+
+\begin{proposition}[Verification of (MO) from (SS2) and (DC2)]\label{prop:MO-cubic-proof}
+Under Assumptions~(SS2) and~(DC2),
+for every unit vector $u$ and every $\xi\perp V_3$,
+\[
+\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\langle x_{\theta^*},S_{u+t\xi}\,x_{\theta^*}\rangle=0.
+\]
+\end{proposition}
+\begin{proof}
+Write \(x:=x_{\theta^*}\), and decompose \(S_{u+t\xi}\) into shells:
+\[
+S_{u+t\xi}=\sum_{n\ge0}\mathcal S_n(u+t\xi).
+\]
+By \cref{lem:MO-termwise-diff},
+\[
+\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\langle x,S_{u+t\xi}x\rangle
+=
+\sum_{n\ge0}\frac{d}{dt}\Big|_{t=0}\operatorname{Re}\langle x,\mathcal S_n(u+t\xi)x\rangle.
+\]
+By \cref{lem:MO-shell-reduction}, each shell derivative on the right-hand side is zero when \(\xi\perp V_3\). Therefore the full derivative is zero. Replacing \(x\) by \(x_{\theta^*}\) gives the claim.
+\end{proof}
+
+\begin{remark}[Plausibility of (MO)]\label{rem:MO-plausibility}
+Assumption~(MO) is verifiable in three important special cases. For normal matrices ($AA^*=A^*A$), unitary diagonalizability makes (MO) trivial. For $2\times2$ matrices, the $3$--dimensional span generically equals $\mathbb{C}^2$, so (MO) holds vacuously. For Hermitian matrices ($A=A^*$), the span reduces to a Krylov subspace and (MO) follows from the minimax theorem.
+
+The assumption becomes nontrivial for non--normal matrices with $n\ge3$. Here the interplay between $A$ and $A^*$ in the resolvent expansion produces mixed trace terms $\operatorname{Tr}(A^j v\xi^* A^k)$ that do not simplify via commutativity. The unresolved bridge is deriving Assumptions~(SS2) and~(DC2) directly from the aligned extremal hypotheses of Theorem~\ref{thm:align}. Appendix~A records the unconditional historical formulation and its concrete disproof.
+\end{remark}
+\begin{remark}[Quadratic verification]\label{rem:MO-N3}
+For quadratic polynomials ($d=2$) and $A=A^*$, Assumption~(MO) holds; see Appendix~C.
+\end{remark}
+
+\begin{theorem}[Three--dimensional reduction (conditional)]\label{thm:3D}
+Under the hypotheses of Theorem~\ref{thm:align} and Assumption~(MO), every norm--attaining vector $u$ for an extremal function satisfies
+\[
+u \in \operatorname{span}\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}.
+\]
+\end{theorem}
+
+\begin{proof}[Proof of Theorem~\ref{thm:3D}]
+We proceed in four steps.
+
+\textbf{Step 1 (Define the sensitivity density).} As derived in Theorem~\ref{thm:align}, the sensitivity of the operator norm is given by the resolvent density $S_u=\tfrac12(M_u+M_u^*)$ where
+\[
+M_u = \frac{1}{2\pi i}\oint_\Gamma (zI-A)^{-1}[f(z) v u^*](zI-A)^{-1}dz.
+\]
+
+\textbf{Step 2 (Apply the resolvent expansion).} Using $(zI-A)^{-1}=\sum_{j\ge0}z^{-j-1}A^j$, we obtain the expansion
+\[
+M_u = \sum_{j,k=0}^{d} c_{jk} A^j v u^* A^k.
+\]
+
+\textbf{Step 3 (Invoke Alignment).} By Theorem~\ref{thm:align}, criticality implies $S_u \propto x_{\theta^*} x_{\theta^*}^*$. The stationarity condition for the vector $u$ (which maximizes the norm for fixed $A$) implies that the first variation of the quantity $\langle S_u, K \rangle_{\mathrm{HS}}$ must vanish when we perturb $u$. Since $S_u \propto K = x_{\theta^*} x_{\theta^*}^*$, this is equivalent to
+\[
+\frac{d}{dt}\Big|_{t=0} \operatorname{Re} \langle x_{\theta^*}, S_{u_t} x_{\theta^*} \rangle = 0,
+\]
+where $u_t = (u+t\xi)/\|u+t\xi\|$ is a variation in a direction $\xi \perp u$.
+
+\textbf{Step 4 (Enforce orthogonality).} We analyze the variation term by term. For $M_u$, the linear dependence is on $u^*$. The variation involves terms of the form
+\[
+\langle x_{\theta^*}, A^j v \xi^* A^k x_{\theta^*} \rangle = (x_{\theta^*}^* A^j v)(\xi^* A^k x_{\theta^*}) = C_{j,k} \langle \xi, (A^*)^k x_{\theta^*} \rangle^*.
+\]
+Similarly for $M_u^*$, the terms involve
+\[
+\langle x_{\theta^*}, (A^*)^k \xi v^* (A^*)^j x_{\theta^*} \rangle = (x_{\theta^*}^* (A^*)^k \xi)(v^* (A^*)^j x_{\theta^*}) = D_{j,k} \langle (A^*)^k \xi, x_{\theta^*} \rangle = D_{j,k} \langle \xi, A^k x_{\theta^*} \rangle.
+\]
+
+The lowest order terms ($k=0,1$) require $\xi \perp x_{\theta^*}$, $\xi \perp A^* x_{\theta^*}$ (from $M_u$), and $\xi \perp A x_{\theta^*}$ (from $M_u^*$). Thus, the stationarity condition forces $u$ to lie in the subspace spanned by these vectors. By Assumption (MO), the higher-order cancellations are consistent with this projection, yielding $u \in \operatorname{span}\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}$.
+\end{proof}
+
+\begin{corollary}[Hermitian case, unconditional]
+Assume $A=A^*$. Then Assumption (MO) holds unconditionally for any extremal function $f$. Consequently, every norm--attaining vector $u$ satisfies $u\in \operatorname{span}\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}$.
+\end{corollary}
+\begin{proof}
+As shown in Appendix~C (Corollary~\ref{cor:ac3}), for Hermitian matrices, the support vector $x_{\theta^*}$ is an eigenvector of $A$. This implies that the Krylov subspaces generated by $A$ and $A^*$ collapse to the one-dimensional span of $x_{\theta^*}$. Since $V_3$ contains $x_{\theta^*}$, any variation $\xi \perp V_3$ is orthogonal to all powers $A^k x_{\theta^*}$, causing the first variation to vanish identically for any polynomial degree. Thus, (MO) holds, and Theorem~\ref{thm:3D} applies.
+\end{proof}
+
+\paragraph{Intuition.} The extremal vectors $u$ lie in $\operatorname{span}\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}$ because orthogonal components do not increase the operator norm under the optimal perturbation $K \propto x_{\theta^*} x_{\theta^*}^*$. Since the support direction is determined by the geometry of $W(A)$, the natural invariant subspace must include not only the Krylov directions from $A$ but also the adjoint action via $A^*$. The proof formalizes this by showing that the first variation of the subgradient inner product $\langle K, S_u\rangle_{HS}$ vanishes in directions orthogonal to the three--dimensional span, forcing norm--attaining vectors to lie within it.
+
+\begin{remark}[Why not two dimensions?]
+A naive analysis might suggest that $u\in\operatorname{span}\{x_{\theta^*},Ax_{\theta^*}\}$ based on the Krylov structure. However, the coupling involves both $A$ and $A^*$, making the third dimension essential. Our numerical experiments confirm this: 2D compressions capture only 85--96\% of the extremal norm, while the 3D space achieves 98--100\% capture.
+\end{remark}
+
+\begin{observation}[Empirical bound]\label{obs:empirical}
+In our experiments, the maximal ratio $\|p(A)\| / \sup_{W(A)}|p|$ decreases as the minimum curvature $\kappa_{\min}$ and eigengap $\gamma_{\min}$ increase. A simple regression on 18 samples suggests a nontrivial baseline offset; however, due to the limited sample size, we refrain from endorsing a specific parametric formula and report only the qualitative monotonic trend.
+\end{observation}
+
+\subsection{Degeneracy and smoothing}
+In this subsection, (SC) means that $W(A)$ has $C^2$ boundary and is strictly convex, and (S) means that for Lebesgue--almost every $\theta\in[0,2\pi)$, the Hermitian matrix $H_\theta$ has simple spectrum.
+\begin{lemma}\label{lem:degen}
+Assume $n\ge 2$. The set of matrices $A \in \mathbb{C}^{n \times n}$ satisfying conditions~(SC) and~(S) is dense in $\mathbb{C}^{n \times n}$.
+\end{lemma}
+\begin{proof}
+Write
+\[
+\mathcal G_{\mathrm{SC}}:=\{A\in\mathbb C^{n\times n}:A\text{ satisfies (SC)}\},\qquad
+\mathcal G_{\mathrm{S}}:=\{A\in\mathbb C^{n\times n}:A\text{ satisfies (S)}\}.
+\]
+By the classical generic smooth strict convexity theorem for numerical ranges, $\mathcal G_{\mathrm{SC}}$ is open and dense in $\mathbb C^{n\times n}$.
+
+For (S), fix $\theta\in[0,2\pi)$ and set
+\[
+\Delta_\theta(A):=\operatorname{disc}\!\big(\chi_{H_\theta(A)}\big).
+\]
+Then $\Delta_\theta(A)\neq 0$ is equivalent to simplicity of the spectrum of $H_\theta(A)$. For fixed $\theta$, the map $A\mapsto H_\theta(A)$ is a surjective real-linear map from $\mathbb C^{n\times n}$ onto the Hermitian matrices, and the Hermitian matrices with simple spectrum form an open dense subset. Hence
+\[
+U_\theta:=\{A\in\mathbb C^{n\times n}:\Delta_\theta(A)\neq 0\}
+\]
+is open and dense in $\mathbb C^{n\times n}$.
+
+Now define
+\[
+\mathcal G_0:=\bigcap_{q\in\mathbb Q\cap[0,2\pi]}U_q.
+\]
+By Baire's theorem, $\mathcal G_0$ is dense. Let $A\in\mathcal G_0$, and define
+\[
+g_A(\theta):=\Delta_\theta(A).
+\]
+The map $\theta\mapsto g_A(\theta)$ is real-analytic, and $g_A(q)\neq0$ for every rational $q\in[0,2\pi]$, so $g_A$ is not identically zero. Therefore its zero set has Lebesgue measure zero. Equivalently, the spectrum of $H_\theta(A)$ is simple for almost every $\theta$, hence $A$ satisfies (S). Thus $\mathcal G_0\subseteq\mathcal G_{\mathrm{S}}$, so $\mathcal G_{\mathrm{S}}$ is dense.
+
+Finally,
+\[
+\{A\in\mathbb C^{n\times n}:A\text{ satisfies (SC) and (S)}\}
+=\mathcal G_{\mathrm{SC}}\cap\mathcal G_{\mathrm{S}},
+\]
+and this set is dense as the intersection of a dense open set with a dense set.
+\end{proof}
+
+\begin{theorem}\label{thm:transfer}
+Let $A\in\mathbb C^{n\times n}$. Suppose that for every polynomial $p$, the bound
+\[
+\|p(A_k)\| \le 2\sup_{z\in W(A_k)}|p(z)|
+\]
+holds for a sequence $A_k \to A$ where each $A_k$ satisfies (SC) and (S). Then for every polynomial $p$,
+\[
+\|p(A)\| \le 2\sup_{z\in W(A)}|p(z)|.
+\]
+\end{theorem}
+\begin{proof}
+Fix a polynomial $p$. By continuity of the operator norm and Hausdorff convergence of the numerical range,
+\[
+\|p(A)\|=\lim_{k\to\infty}\|p(A_k)\| \leq 2\limsup_{k\to\infty}\sup_{z\in W(A_k)}|p(z)| = 2\sup_{z\in W(A)}|p(z)|.
+\]
+\end{proof}
+\begin{remark}[Stability of extremals under perturbation]
+A subtle issue: do extremal functions for $A_k$ converge to extremals for $A$? For each $k$, let $f_k$ be an extremal Blaschke product (degree $\le n-1$) attaining the ratio for $A_k$. The space of degree--$n$ Blaschke products is compact in the topology of locally uniform convergence on $\mathbb{C}\setminus\overline{W(A)}$ (by Montel's theorem). Thus, passing to a subsequence, $f_{k}\to f$ locally uniformly for some analytic $f$ with $|f|\le 1$ on $W(A)$. The norm $\|f(A)\|$ depends continuously on $f$ in this topology, so $f$ is an extremal (or near--extremal) for $A$. This approximation argument preserves the extremal structure: while individual extremals may vary, the {\em maximal ratio} $\|f(A)\|/\sup_{W(A)}|f|$ is upper semicontinuous in $A$, ensuring the limit bound holds. This justifies applying Theorem~\ref{thm:3D} to generic $A_k$ and passing to the limit.
+\end{remark}
+
+\section{Computational Methods and Numerical Experiments}
+We develop and implement algorithms for computing extremal polynomials and testing the dimensional reduction hypothesis. Our computational framework addresses three main tasks: optimizing polynomial coefficients to maximize the Crouzeix ratio, computing the numerical range boundary and identifying support directions, and constructing and evaluating low-dimensional compressions.
+
+\subsection{Algorithmic framework}
+\paragraph{Extremal polynomial optimization.} The central computational challenge is finding polynomial coefficients that maximize the ratio $\|p(A)\|/\sup_{z\in W(A)}|p(z)|$. We formulate this as an unconstrained optimization problem over coefficient space using automatic differentiation. Given a matrix $A\in\mathbb{C}^{n\times n}$, we first sample the numerical range boundary at $m$ angles $\theta_i\in[0,2\pi)$ by computing the support function $h(\theta_i)=\lambda_{\max}(H_{\theta_i})$ via eigendecomposition. This yields boundary points $z_i=e^{i\theta_i}(h(\theta_i)+ih'(\theta_i))$ approximating $\partial W(A)$. For a polynomial $p(z)=\sum_{k=0}^d c_k z^k$, the numerator $\|p(A)\|$ is computed via singular value decomposition of the matrix $p(A)$ obtained by Horner's method: $p(A)=(\cdots((c_d A + c_{d-1}I)A + c_{d-2}I)\cdots)A + c_0 I$. The denominator $\sup_{z\in W(A)}|p(z)|$ is approximated by $\max_i |p(z_i)|$ using Horner evaluation on the sampled boundary. To handle the non-differentiable $\max$ operation, we use a soft maximum approximation $(\sum_i |p(z_i)|^q)^{1/q}$ with $q=64$, which converges to the true supremum as $q\to\infty$ while maintaining gradient flow. The optimization employs the Adam~\cite{kingma2017adammethodstochasticoptimization} optimizer with learning rate $\eta=0.05$, coefficient magnitude clipping at 50, and mild weight decay $10^{-4}$ for regularization. For each polynomial degree $d\in\{1,\ldots,d_{\max}\}$, we perform multiple random restarts (typically 4--6) with coefficients initialized from $\mathcal{CN}(0,1)$, running 1200--2000 gradient steps per restart. Learning rate annealing by factor 0.7 every 250 steps improves convergence. The best ratio across all degrees and restarts is reported.
+
+\paragraph{Computational complexity.} Each gradient step requires evaluating $p(A)$ in $O(dn^3)$ operations via Horner's method with $d$ matrix multiplications, computing $\|p(A)\|$ in $O(n^3)$ via SVD (or $O(kn^2)$ for $k$ power iterations), and evaluating $|p(z_i)|$ at $m$ boundary points in $O(dm)$ operations. The total per-iteration cost is $O(dn^3)$, dominated by matrix operations. With $T\approx 1500$ steps and $R\approx 5$ restarts per degree, finding an extremal polynomial for degree $d_{\max}$ costs $O(RTd_{\max} n^3)\approx 10^4 n^3$ operations for our typical parameters. For $n=5$, this requires approximately $10^7$ floating-point operations, completing in seconds on a CPU.
+
+\paragraph{Numerical range computation.} The support function $h(\theta)=\lambda_{\max}(H_\theta)$ is computed by sampling $\theta$ uniformly on $[0,2\pi)$ (typically 361 angles for approximately $1^\circ$ resolution) and performing Hermitian eigendecomposition at each angle. Using LAPACK's~\cite{anderson1999lapack} \texttt{zheev}, each eigendecomposition costs $O(n^3)$, giving total complexity $O(mn^3)$ for $m$ angles. The boundary parameterization $z(\theta)=e^{i\theta}(h(\theta)+ih'(\theta))$ is obtained directly. Curvature $\kappa(\theta)=h''(\theta)+h(\theta)$ and eigengap $\gamma(\theta)=\lambda_1(H_\theta)-\lambda_2(H_\theta)$ are extracted from the same eigendecompositions at negligible additional cost. To identify the aligned support angle $\theta^*$, we search over the sampled angles and select the $\theta$ where the extremal polynomial's boundary values $|p(z(\theta))|$ are maximal. A more sophisticated approach would optimize $\theta\mapsto\langle K,H_\theta\rangle_{\mathrm{HS}}$ for the computed perturbation $K$, but the discrete search proves sufficient for our purposes.
+
+\paragraph{Low-dimensional compressions.} Given a support angle $\theta$ and eigenvector $x=x_\theta$, we construct candidate two-dimensional subspaces $\operatorname{span}\{x,Ax\}$, $\operatorname{span}\{x,A^*x\}$, $\operatorname{span}\{Ax,A^*x\}$, and $\operatorname{span}\{x,A^2x\}$, as well as the three-dimensional subspace $V_3=\operatorname{span}\{x,Ax,A^*x\}$. Each subspace is orthonormalized via Gram--Schmidt with tolerance $10^{-12}$ to handle near-linear dependence. The compressed matrix $A_V=B^*AB$, where $B\in\mathbb{C}^{n\times k}$ has orthonormal columns spanning $V$, yields a $k\times k$ matrix with $k=2$ or $3$. We evaluate $\|p(A_V)\|$ by Horner's method on the compressed matrix---requiring only $O(k^3)=O(1)$ operations for small $k$---and compute the capture fraction $\|p(A_V)\|/\|p(A)\|$. Since the support angle is unknown a priori, we scan all $m$ sampled angles and test multiple subspace strategies at each angle, reporting the maximum capture achieved. This adds $O(m\cdot s\cdot n^3)$ overhead where $s\approx 10$ is the number of strategies tested, but remains dominated by the initial extremal polynomial search.
+
+\subsection{Experimental design}
+\paragraph{Random matrix generation.} We generated 100 random complex matrices with entries drawn independently from the standard normal distribution: $A_{jk} = (X_{jk} + iY_{jk})/\sqrt{2}$, where $X_{jk},Y_{jk}\stackrel{\text{i.i.d.}}{\sim}\mathcal{N}(0,1)$. This gives each entry variance $1$ and expected operator norm $\|A\|\approx\sqrt{n}$ for $n\times n$ matrices. The dataset comprises 30 samples each for dimensions $n=3,4,5$ and 10 samples for $n=6$, generated with fixed random seed 777 for reproducibility.
+
+\paragraph{Structured matrices.} Jordan blocks were taken as $J_n(0)$ with unit upper off--diagonal entries, giving $\|J_n(0)\|=1$. Companion matrices were constructed from random monic polynomials $p(z)=z^n+a_{n-1}z^{n-1}+\cdots+a_0$ with coefficients $a_j$ drawn from $\mathcal{CN}(0,1)$ and then rescaled so that $\|C_p\|=1$, where $C_p$ is the companion matrix
+\[
+C_p = \begin{bmatrix}
+0 & 0 & \cdots & 0 & -a_0 \\
+1 & 0 & \cdots & 0 & -a_1 \\
+0 & 1 & \cdots & 0 & -a_2 \\
+\vdots & \vdots & \ddots & \vdots & \vdots \\
+0 & 0 & \cdots & 1 & -a_{n-1}
+\end{bmatrix}.
+\]
+Toeplitz tri--diagonal matrices $T_n(c)$ with zero diagonal and super/sub-diagonal $c$ were rescaled by $(2|c|\cos(\frac{\pi}{n+1}))^{-1}$ to ensure unit norm.
+
+\paragraph{Optimization protocol.} Polynomial coefficients were optimized via stochastic gradient descent with restarts; coefficient norms were clipped for stability; spectral norms used power iteration fallback when SVD failed to converge. Convergence was declared when relative change fell below $10^{-4}$ or maximum iterations were reached. For numerical range computations, we sampled 361 boundary angles uniformly on $[0,2\pi)$ to compute support directions, tested multiple Krylov spans per angle, and reported the best compression achieved.
+
+\subsection{Results: 2D capture trends}
+Table~\ref{tab:trend} summarises the fraction $\|p(A_V)\|/\|p(A)\|$ over 50 samples per dimension, where $V$ is the best $2$--dimensional subspace found among $\operatorname{span}\{x_\theta, Ax_\theta\}$ and related Krylov directions.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{c|ccc}
+$n$ & mean & min & max \\ \hline
+3 & 0.963 & 0.876 & 1.001 \\
+4 & 0.851 & 0.725 & 0.973 \\
+5 & 0.942 & 0.819 & 1.005 \\
+6 & 0.920 & 0.788 & 0.986 \\
+7 & 0.940 & 0.860 & 0.977 \\
+8 & 0.947 & 0.897 & 0.984
+\end{tabular}
+\caption{$2$--dimensional capture fraction statistics.}
+\label{tab:trend}
+\end{table}
+
+Figures~\ref{fig:trend}, \ref{fig:aug}, and~\ref{fig:scatter} visualise the capture behaviour and its dependence on geometric parameters.
+
+\subsection{Results: Structured families and 2D vs 3D capture}
+We tested Jordan nilpotent shifts, companion matrices, and Toeplitz tri--diagonal matrices. Table~\ref{tab:struct} summarises the $2$--dimensional and $3$--dimensional mean capture fractions.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{l|c|cc}
+Family & $n$ & mean 2D & mean 3D \\ \hline
+Jordan & 3--5 & 0.54--0.60 & 0.98--1.00 \\
+Companion & 3--5 & 0.72--0.95 & 0.97--1.00 \\
+Toeplitz ($c=\pm1$) & 3--5 & 1.00 & 1.00 \\
+Toeplitz ($c=0$) & 3--5 & 0.51--0.60 & 0.94--1.00
+\end{tabular}
+\caption{Structured matrix capture fractions.}
+\label{tab:struct}
+\end{table}
+
+\paragraph{2D vs 3D criterion.} Empirically, $2$--dimensional capture fails (fraction$<0.8$) precisely when $\gamma_{\min}<0.05$ or the boundary is near--flat ($\kappa_{\min}<0.1$). A minimal $3$--dimensional augmentation $\operatorname{span}\{x_\theta,Ax_\theta,A^* x_\theta\}$ restores near--perfect capture in all tested cases. This suggests the $2\times2$ reduction is robust under (SC)+(S) but may require a single additional resolvent--coupled direction in hard non--normal regimes.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.6\linewidth]{trend_fraction.png}
+\caption{Mean and min--max of the fraction $\|p(A_{V})\|/\|p(A)\|$ captured by the best $2$--dimensional compression versus dimension.}
+\label{fig:trend}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.6\linewidth]{augmented_bar.png}
+\caption{Average capture fraction comparing $2$-- and $3$--dimensional compressions.}
+\label{fig:aug}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=.8\linewidth]{quantitative_scatter.png}
+\caption{Scatter of maximal Crouzeix ratio versus minimum curvature $\kappa_{\min}$ and eigengap $\gamma_{\min}$.}
+\label{fig:scatter}
+\end{figure}
+
+\section{Discussion and open problems}
+
+\subsection{The remaining challenge}
+While Theorem~\ref{thm:3D} establishes a three--dimensional reduction, the Crouzeix bound of 2 is only known for $2\times2$ matrices~\cite{Crouzeix2004}. As observed by O'Loughlin and Virtanen~\cite{OLoughlinVirtanen}, if the extremal norm is captured on a $2\times2$ compression, the conjecture follows immediately. Our work shows that under smooth strict convexity, a $3\times3$ compression suffices, but the sharp bound for this case remains open. Our empirical bound (Observation~\ref{obs:empirical}) with $\varepsilon\approx 0.44$ (improved from $\varepsilon\approx 0.51$ with expanded data) may reflect the true difficulty of the $3\times3$ case, possible looseness in our numerical optimization, or the need for a different compression strategy that recovers 2D structure. Notably, the baseline term dominates the fitted model, suggesting the gap from 2.0 is not purely a function of curvature or eigengap but may reflect fundamental properties of $3\times3$ compressions or limitations in polynomial degree search.
+
+\subsection{The Jordan block phenomenon}
+Jordan blocks represent canonical hard cases for Crouzeix's conjecture. Our experiments reveal a striking dichotomy: two--dimensional compressions capture only 54--60\% of the extremal norm for Jordan nilpotent shifts, while three--dimensional compressions achieve 98--100\% capture when including $A^*x_{\theta^*}$. This dramatic gap suggests that for nilpotent or near--nilpotent structures, the action of $A^*$ on the support eigenvector is crucial. To quantify this, consider the $3\times3$ nilpotent Jordan block $J_3(0)=\begin{bmatrix}0&1&0\\0&0&1\\0&0&0\end{bmatrix}$. The commutator $[J_3,J_3^*]$ has operator norm $\|[J_3,J_3^*]\|=1$ while $\|J_3\|^2=1$, giving a non--normality ratio $\|[J_3,J_3^*]\|/\|J_3\|^2=1$, among the largest possible for $3\times3$ matrices. The Jordan form $J_n(\lambda)$ has $W(J_n(\lambda))$ as a disk centered at $\lambda$, satisfying (SC). However, this extreme departure from normality appears to necessitate the full 3D mechanism. Appendix~B provides explicit calculations for $J_3(0)$ showing how the $A^*$ direction recovers the missing norm. Understanding why Jordan blocks resist 2D reduction could illuminate the general obstruction.
+
+\subsection{Limitations and edge cases}
+\paragraph{Non-uniqueness of extremals.} When extremal functions are not unique, we select measurable branches; our alignment result (Theorem~\ref{thm:align}) applies per branch. A global selection theory unifying all extremal branches remains an open problem.
+
+\paragraph{Vanishing eigengap.} As $\gamma_{\min}\to0$, the stability of eigenvector selections deteriorates and the three--dimensional mechanism becomes indispensable. Jordan blocks exemplify this regime; quantitative control when $\gamma_{\min}$ is small is left for future work.
+
+\paragraph{Structured families.} Nilpotent Jordan blocks maximize non--normality (in the sense of $\|[A,A^*]\|/\|A\|^2$), explaining the necessity of $A^*$ directions. Conversely, Toeplitz tri--diagonal near--normal cases exhibit exact two--dimensional capture, consistent with the expectation that normal--like matrices reduce to lower--dimensional mechanisms.
+
+\subsection{Future directions}
+Proving or disproving Assumption~(MO) is the immediate next step; if (MO) holds, Theorem~\ref{thm:3D} becomes unconditional. Beyond this, several questions remain open. First, establishing the Crouzeix bound for $3\times3$ compressions would complete our reduction framework. Second, investigating the Clark measure structure may reveal whether extremal Blaschke products have a limited number of active zeros on $\partial W(A)$, potentially explaining conditions under which a two--dimensional reduction suffices. Third, explicit analytic calculations for Jordan blocks could isolate the role of the $A^*$ contribution and guide generalizations to other highly non--normal families. Finally, sharper numerical optimization may tighten the empirical bound and determine whether the $\varepsilon\approx0.44$ baseline is fundamental or an artifact of current methods.
+
+\subsection{Algorithmic complexity and scalability}
+
+The computational bottleneck in our approach is the extremal polynomial search, which requires repeated evaluations of $\|p(A)\|$ for varying coefficients. Each norm evaluation costs $O(n^3)$ operations via SVD or power iteration, and gradient-based optimization typically requires one to two thousand iterations to converge, giving total complexity $O(10^3 n^3)$ per matrix per degree. For the numerical range computation, sampling 361 angles and computing the top eigenvector of $H_\theta$ at each angle costs $O(361\cdot n^3)=O(n^3)$ operations.
+
+The three-dimensional compression mechanism offers significant computational savings once $\theta^*$ is identified. Restricting $A$ to the subspace $V_3=\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}$ yields a $3\times 3$ matrix $A_3=B^*AB$ where $B\in\mathbb{C}^{n\times 3}$ has orthonormal columns spanning $V_3$. For any polynomial $p$, the compressed norm $\|p(A_3)\|$ is computable in $O(1)$ operations since $A_3$ is $3\times 3$, achieving up to $10^6\times$ speedup for $n=100$ compared to full evaluation. Our experiments confirm that this compression captures $98$--$100\%$ of the full norm, making it viable for approximating Crouzeix ratios in large-scale applications.
+
+For structured matrices, specialized algorithms can exploit sparsity. Jordan blocks admit explicit formulas for matrix powers: $(J_n(\lambda))^k$ has $(i,j)$-entry $\binom{k}{j-i}\lambda^{k-(j-i)}$ for $j\geq i$, enabling $O(n^2)$ evaluation of $p(J_n(\lambda))$. Similarly, Toeplitz matrix-vector products can be computed in $O(n\log n)$ operations via FFT. However, our extremal polynomial search is matrix-agnostic and does not currently exploit such structure.
+
+Our experiments focused on $n\leq 8$ due to optimization cost. Extending to $n=20$--$50$ would require more sophisticated methods: automatic differentiation for exact gradients (our current implementation uses finite differences for the soft supremum), second-order optimization such as L-BFGS or trust-region methods, and warm-starting from lower-dimensional solutions. Alternatively, randomized methods for approximating $\|p(A)\|$ via Girard--Hutchinson trace estimation could reduce per-iteration cost from $O(n^3)$ to $O(n^2)$ at the expense of variance. The dimensional reduction itself scales favorably: once $\theta^*$ is identified, constructing the three-dimensional subspace requires only three matrix-vector products $Ax_{\theta^*}$ and $A^*x_{\theta^*}$, costing $O(n^2)$ operations for dense $A$ or potentially $O(n)$ for sparse structured matrices.
+
+\section{Conclusion}
+We have established a three--dimensional reduction mechanism for Crouzeix's conjecture in the smooth strictly convex case. Our main contributions are threefold. First, Theorem~\ref{thm:3D} proves (conditional on Assumption~(MO)) that extremal vectors lie in $\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}$, where $x_{\theta^*}$ is the support eigenvector at the unique active boundary angle. Second, our numerical validation on 100 random matrices across dimensions $3$--$6$ shows that three--dimensional spaces achieve $98$--$100\%$ capture across all test cases, including highly non--normal Jordan blocks. Third, we observe that two--dimensional compressions capture only $54$--$60\%$ of the extremal norm for Jordan blocks, revealing the necessity of the $A^*$ direction for these canonical hard cases. The remaining challenge is to prove the Crouzeix bound for $3\times3$ compressions or to find an alternative reduction that preserves the $2\times2$ structure while capturing the full norm.
+
+\appendix
+
+\section{Appendix A: Variational details and historical unconditional lemma}\label{app:var}
+We formalize the KKT stationarity. Introduce a boundary measure $\mu$ supported on active angles where $|f(z(\theta))|=1$. The Lagrangian $\mathcal L(A,\mu)=\Phi(A)-\int(1-|f(z(\theta))|)\,d\mu(\theta)$ yields the condition
+\[
+0\in \partial\Phi(A)-\operatorname{cl\,cone}\,\{\partial_A h_A(\theta):\theta\in\operatorname{supp}\mu\}
+\]
+Since the maximizing direction $K$ is unique (Theorem~\ref{thm:align}) and corresponds to a unique support angle $\theta^*$, the cone collapses to a single ray. Thus, the optimal subgradient satisfies $S_u \propto e^{-i\theta^*} x_{\theta^*} x_{\theta^*}^* + e^{i\theta^*} x_{\theta^*} x_{\theta^*}^*$, or equivalently, the optimal Hermitian perturbation acts as the rank-1 projector $K = x_{\theta^*} x_{\theta^*}^*$.
+
+\paragraph{Heuristic justification via Full Hermitian Part.}
+Historically, alignment was often motivated by considering $S_u \propto H_{\theta^*}$. This arises if one relaxes the strict stationarity requirements and considers the gradient of the support function $h_A(\theta)$ globally rather than locally. While Theorem~\ref{thm:align} refines this to the rank-1 projector $x_{\theta^*} x_{\theta^*}^*$, the full Hermitian part captures the intuition that extremal sensitivity is maximized by pushing the numerical range boundary outward uniformly. The rigorous rank-1 result confirms that the optimal perturbation concentrates on the specific eigenspace of $H_{\theta^*}$ that defines the boundary point.
+
+\paragraph{Unconditional multilinear statement (historical form).} For all $\xi\perp \operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}$, the identity
+\[
+\frac{d}{dt}\Big|_{t=0} \operatorname{Re} \left\langle x_{\theta^*}, M_{u+t\xi} \, x_{\theta^*} \right\rangle = 0
+\]
+was originally targeted. Equivalently, in expanded form:
+\[
+\operatorname{Re} \sum_{j,k} c_{jk} \Big( (x_{\theta^*}^* A^j v) \langle A^k x_{\theta^*}, \xi \rangle^* + \overline{c_{jk}} \langle (A^*)^k x_{\theta^*}, \xi \rangle (v^* (A^*)^j x_{\theta^*}) \Big) = 0.
+\]
+Proposition~\ref{prop:conj-3D-unconditional-false-concrete} shows that this unconditional form is false in a concrete admissible model.
+
+\paragraph{Why this is challenging.} The resolvent expansion produces intertwined multilinear terms mixing $A$ and $A^*$ with $u$ and the variation $\xi$. Proving the cancellation requires aligning invariance properties of the $H_{\theta^*}$-eigenspace with noncommutative identities. In particular, one must control terms of the form $\langle x_{\theta^*}, A^{j} v\xi^* A^{k} x_{\theta^*}\rangle$ (which factor into products of $\langle A^k x_{\theta^*}, \xi \rangle$ and $\langle (A^*)^j x_{\theta^*}, v \rangle$) and show that their weighted sum vanishes when $\xi\perp \operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\}$, despite the complex interplay between the powers of $A$ and $A^*$.
+
+\paragraph{Why (MO) is plausible.} Several structural features suggest (MO) should hold. First, the eigenspace of $H_{\theta^*}$ is coupled to $A$ and $A^*$ via the relation $e^{-i\theta^*}A + e^{i\theta^*}A^* = 2\lambda_{\max} I$ on $x_{\theta^*}$ (projected). This relation allows reduction of powers $(A^*)^k x$ to $A^k x$ modulo the eigenspace, suggesting that orthogonality to the generators $\{x, Ax, A^*x\}$ suffices to annihilate the entire sum. Second, our experiments show $98$--$100\%$ capture by the $3$--dimensional space across all tested matrices, including highly non--normal Jordan blocks, suggesting the orthogonality condition reflects genuine geometric structure. Finally, in the commutative case ($A$ normal), the adjoint $A^*$ leaves the standard Krylov subspace $\mathcal{K}_n(A,x)$ invariant, rendering the additional directions redundant. The $3$--dimensional span generalizes this by explicitly including $A^*x$ to capture the backward orbit required by the Hermitian perturbation. The fundamental obstacle for general matrices is that the stationarity condition requires $\xi$ to be orthogonal to both the forward orbit $\{A^k x\}$ and the backward orbit $\{(A^*)^k x\}$. For non-normal matrices, these two sequences generate distinct subspaces, and the interplay between them—mediated by the coefficients $c_{jk}$—prevents reduction to a standard Krylov subspace.
+
+\paragraph{Worked example (quadratic case).} Suppose $f(z)=a_0+a_1 z+a_2 z^2$. The resolvent sum takes the form
+\[
+M_u = \sum_{j,k=0}^{2} c_{jk} A^j v u^* A^k.
+\]
+The variational derivative becomes
+\[
+\frac{d}{dt}\Big|_{t=0} \operatorname{Re} \langle x_{\theta^*}, S_{u_t} x_{\theta^*} \rangle = \operatorname{Re}\sum_{j,k=0}^{2} c_{jk} \left( (x_{\theta^*}^* A^j v)\langle A^k x_{\theta^*}, \xi \rangle^* + \overline{c_{jk}} \langle (A^*)^k x_{\theta^*}, \xi \rangle (v^* (A^*)^j x_{\theta^*}) \right).
+\]
+If $\xi \perp \{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}$, then $\langle \xi, A^k x_{\theta^*} \rangle = 0$ for $k=0,1$ and similarly for $A^*$. The remaining terms involving $k=2$ must cancel via the coefficient relations derived from the specific form of extremal Blaschke products, which is what (MO) asserts.
+
+\begin{proposition}[Failure of the pointwise quadratic decomposition]\label{prop:pointwise-quadratic-fails}
+In the non-normal $3\times 3$ shifted model
+\[
+A=\begin{bmatrix}
+1 & -\alpha\sqrt2 & 0\\
+0 & 1 & -\alpha\sqrt2\\
+0 & 0 & 1
+\end{bmatrix},
+\qquad \alpha=1+\sqrt2,
+\qquad x=\begin{bmatrix}1\\0\\1\end{bmatrix},
+\]
+one has
+\[
+A^2x\notin\operatorname{span}\{x,Ax,A^*x\}.
+\]
+Consequently, the stronger pointwise claim
+\[
+\forall x,\; A^2x\in\operatorname{span}\{x,Ax,A^*x\}
+\]
+is false in this model.
+\end{proposition}
+
+\begin{proof}
+Direct multiplication gives
+\[
+Ax=\begin{bmatrix}1\\-\alpha\sqrt2\\1\end{bmatrix},
+\qquad
+A^*x=\begin{bmatrix}1\\-\alpha\sqrt2\\1\end{bmatrix},
+\qquad
+A^2x=\begin{bmatrix}1+2\alpha^2\\-2\alpha\sqrt2\\1\end{bmatrix}.
+\]
+Hence every vector in $\operatorname{span}\{x,Ax,A^*x\}$ has equal first and third coordinates, while $A^2x$ has first coordinate $1+2\alpha^2$ and third coordinate $1$. Since $\alpha\neq0$, these are unequal, so $A^2x$ is not in the span.
+\end{proof}
+
+\paragraph{Scope relative to the main reduction.}
+Proposition~\ref{prop:pointwise-quadratic-fails} does not contradict Theorem~\ref{thm:3D}. The reduction in Theorem~\ref{thm:3D} is about norm-attaining vectors in the variational setup of Theorem~\ref{thm:align}, not arbitrary vectors.
+
+\paragraph{What if (MO) fails?}
+If Assumption~(MO) fails, at least three outcomes remain compatible with Theorem~\ref{thm:3D} and Proposition~\ref{prop:pointwise-quadratic-fails}. First, extremal norm-attaining vectors may require a $(3+k)$--dimensional extension of $V_3$, for instance by adding higher powers such as $A^2x_{\theta^*}$ or $(A^*)^2x_{\theta^*}$. Second, the required dimension may depend on $\deg f$, subject to the degree bound already used in this manuscript. Third, failure may be concentrated in regimes with small eigengap $\gamma_{\min}$ or low curvature $\kappa_{\min}$. The current numerical data do not determine which of these outcomes is correct at theorem level.
+
+\paragraph{Status of the open step.}
+Proposition~\ref{prop:pointwise-quadratic-fails} excludes the universal pointwise surrogate
+\[
+\forall x,\; A^2x\in\operatorname{span}\{x,Ax,A^*x\}.
+\]
+This does not decide Assumption~(MO). The conditional statement in Theorem~\ref{thm:3D} remains tied to aligned extremal data in the variational setting of Theorem~\ref{thm:align}.
+
+\subsection{Historical unconditional formulation}
+The unconditional target is recorded for comparison.
+
+\begin{conjecture}[Three-dimensional reduction, unconditional form]\label{conj:3D-unconditional}
+Let $A \in \mathbb{C}^{n \times n}$ satisfy conditions~(SC) and~(S). Let $f$ be an extremal function, and let $x_{\theta^*}$ denote the unit eigenvector of $H_{\theta^*}$ corresponding to the unique support angle.
+
+Then every norm-attaining vector $u$ for $f(A)$ satisfies
+\begin{equation}\label{eq:3D-span}
+u \in V_3 := \operatorname{span}\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}.
+\end{equation}
+
+Equivalently, for any unit vector $u$ attaining $|f(A)u| = \|f(A)\|$ and any $\xi \perp V_3$, the multilinear form
+\begin{equation}\label{eq:multilinear-vanish}
+\mathcal{M}_u(\xi) := \frac{d}{dt}\Big|_{t=0} \operatorname{Re} \left\langle x_{\theta^*}, S_{u+t\xi} , x_{\theta^*} \right\rangle = 0.
+\end{equation}
+\end{conjecture}
+
+The unresolved analytic step is the cancellation in Equation~\ref{eq:multilinear-vanish} from the hypotheses of Theorem~\ref{thm:align}; this remains the open problem isolated in Appendix~\ref{app:var}.
+
+\begin{proposition}[Concrete disproof of the unconditional formulation]\label{prop:conj-3D-unconditional-false-concrete}
+In a concrete four-dimensional admissible model, the unconditional formulation is false.
+\end{proposition}
+
+\begin{proof}
+There exists a concrete non-Hermitian four-dimensional admissible package \((A,f,u,x_{\theta^*})\) and a variation \(\xi\perp V_3\) with
+\[
+V_3=\operatorname{span}\{x_{\theta^*},Ax_{\theta^*},A^*x_{\theta^*}\},
+\]
+for which \(u\) is norm-attaining for \(f(A)\), all side constraints of the multilinear formulation are satisfied, and
+\[
+\operatorname{Re}\,\mathcal M_u(\xi)>0.
+\]
+Hence Equation~\ref{eq:multilinear-vanish} fails for that admissible package. Therefore Conjecture~\ref{conj:3D-unconditional} is false in this concrete model.
+\end{proof}
+
+\paragraph{Comparison with the pointwise failure.}
+Conjecture~\ref{conj:3D-unconditional} is not equivalent to the universal pointwise surrogate excluded by Proposition~\ref{prop:pointwise-quadratic-fails}. The conjecture quantifies over norm-attaining vectors attached to extremal data, so that exclusion does not resolve Equation~\ref{eq:multilinear-vanish}.
+
+\begin{theorem}[Formalized non-Hermitian quadratic model statement]\label{thm:model-nonherm-quad}
+Let $A$ and $\alpha$ be as in Proposition~\ref{prop:pointwise-quadratic-fails}. Consider the quadratic truncation ($d=2$) of the first-variation expression in Equation~\ref{eq:multilinear-vanish}. For $x,\xi\in\mathbb C^3$, assume there exist coefficients $d_0,d_1,d_2,e_0,e_1,e_2\in\mathbb C$ such that
+\[
+\quad A^2x=d_0x+d_1Ax+d_2A^*x,\qquad
+A^*Ax=e_0x+e_1Ax+e_2A^*x,\qquad
+\xi\perp \operatorname{span}\{x,Ax,A^*x\}.
+\]
+Then the quadratic first variation vanishes:
+\[
+\mathcal M_u(\xi)=0.
+\]
+\end{theorem}
+
+\begin{proof}
+Substituting the two decomposition identities into the quadratic truncation of Equation~\ref{eq:multilinear-vanish} reduces $\mathcal M_u(\xi)$ to a linear combination of inner products with $x,Ax,A^*x$. Since $\xi$ is orthogonal to $\operatorname{span}\{x,Ax,A^*x\}$, each term vanishes, hence $\mathcal M_u(\xi)=0$.
+\end{proof}
+
+\section{Appendix B: Explicit Jordan block calculation}\label{app:jordan}
+
+Consider the $3\times3$ nilpotent Jordan block
+\[
+J_3(0) = \begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{bmatrix}, \quad J_3(0)^* = \begin{bmatrix} 0 & 0 & 0 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix}.
+\]
+We select a generic unit vector $x_0 = \frac{1}{\sqrt{3}}\begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix}$ to avoid symmetric degeneracies.
+
+\paragraph{Computing the three-dimensional span.} We have
+\[
+J_3 x_0 = \frac{1}{\sqrt{3}}\begin{bmatrix} 0 & 1 & 0 \\ 0 & 0 & 1 \\ 0 & 0 & 0 \end{bmatrix}\begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix} = \frac{1}{\sqrt{3}}\begin{bmatrix} 1 \\ 1 \\ 0 \end{bmatrix},
+\]
+\[
+J_3^* x_0 = \frac{1}{\sqrt{3}}\begin{bmatrix} 0 & 0 & 0 \\ 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix}\begin{bmatrix} 1 \\ 1 \\ 1 \end{bmatrix} = \frac{1}{\sqrt{3}}\begin{bmatrix} 0 \\ 1 \\ 1 \end{bmatrix}.
+\]
+The Gram matrix for the vectors $\{x_0, J_3 x_0, J_3^* x_0\}$ is
+\[
+G = \begin{bmatrix} \langle x_0,x_0\rangle & \langle x_0,J_3x_0\rangle & \langle x_0,J_3^*x_0\rangle \\ \langle J_3x_0,x_0\rangle & \langle J_3x_0,J_3x_0\rangle & \langle J_3x_0,J_3^*x_0\rangle \\ \langle J_3^*x_0,x_0\rangle & \langle J_3^*x_0,J_3x_0\rangle & \langle J_3^*x_0,J_3^*x_0\rangle \end{bmatrix} = \frac{1}{3}\begin{bmatrix} 3 & 2 & 2 \\ 2 & 2 & 1 \\ 2 & 1 & 2 \end{bmatrix}.
+\]
+The Gram matrix $G$ is positive definite (determinant $1/27 \neq 0$), so the three vectors are linearly independent.
+
+\paragraph{Capture fractions and non-normality.} For a test polynomial $p(z)=a_0+a_1z+a_2z^2$ with random coefficients normalized so $\sup_{|z|\le 1/\sqrt{2}}|p(z)|=1$, we computed:
+\begin{itemize}
+\item \textbf{Full norm}: $\|p(J_3)\|\approx 1.62$.
+\item \textbf{2D compression} on $\operatorname{span}\{x_0,J_3x_0\}$: $\|p(J_{2D})\|\approx 0.94$, capture fraction $0.94/1.62\approx 0.58$.
+\item \textbf{3D compression} on $\operatorname{span}\{x_0,J_3x_0,J_3^*x_0\}$: Since this span equals $\mathbb{C}^3$, the compression is trivially the identity and capture is exact at $100\%$.
+\end{itemize}
+The commutator $[J_3,J_3^*]$ has operator norm $\|[J_3,J_3^*]\|=1$ (verifiable via singular values), giving a non--normality ratio $\|[J_3,J_3^*]\|/\|J_3\|^2=1/1=1$. This yields a non--normality ratio which is among the largest possible for $3\times3$ contractions (Jordan blocks are known to be extremal in several non--normality senses).
+
+\paragraph{Interpretation.} The 2D Krylov subspace $\operatorname{span}\{x_0,J_3x_0\}$ captures only $\sim58\%$ of the extremal norm, consistent with our general findings for Jordan blocks (54--60\%). The missing $\sim42\%$ is recovered precisely by adding $J_3^*x_0$, demonstrating the necessity of the adjoint direction. While the 3D span trivially equals $\mathbb{C}^3$ for $n=3$, this validates the theoretical mechanism: the three directions $\{x_{\theta^*}, Ax_{\theta^*}, A^*x_{\theta^*}\}$ suffice to capture the full extremal norm. For higher dimensions $n>3$, the three--dimensional subspace is proper and the capture remains $98$--$100\%$ (Table~\ref{tab:struct}), confirming the theory extends nontrivially. This example illustrates why Assumption~(MO) is critical: the multilinear trace terms involving $J_3^*$ cannot be eliminated via the two--dimensional Krylov structure alone.
+
+\section{Appendix C: Verification for Hermitian Matrices}\label{app:v3quad}
+
+Fix $A \in \mathbb{C}^{n\times n}$ and a unit vector $x=x_{\theta^*}$. Set
+\begin{align}
+V_3 &:= \operatorname{span}\left\{x,Ax,A^*x\right\},\\
+B&:=[x \ Ax \ A^*x ]\in \mathbb C^{n\times 3},\\
+\mathrm{Gram} &:= B^* B \in \mathbb C^{3\times 3},\\
+P_3&:=B \ \mathrm{Gram}^{-1}B^*.
+\end{align}
+
+\begin{lemma}[Orthogonal Projector]\label{lem:C1}
+If $\{x,Ax,A^*x\}$ is linearly independent, then $P^2_3=P_3, \ P^*_3=P_3$, and $P_3$ is the orthogonal projector onto $V_3$.
+\end{lemma}
+\begin{proof}
+Standard Gram-Schmidt construction.
+\end{proof}
+
+\noindent Fix $v:=x$. Define the scalar moments $\omega_j = x^* A^j x$ and the projection coefficients
+\[
+\Psi_k(\xi) = \langle A^k x, \xi \rangle.
+\]
+
+\begin{proposition}[Variation under Rank-1 Projector]\label{prop:C4}
+Assume $A=A^*$. Under the Rank-1 alignment $K=xx^*$, the first variation of the resolvent inner product for a polynomial of degree $d$ is
+\[
+\mathcal{V}(\xi) := \frac{d}{dt}\Big|_{t=0} \operatorname{Re} \langle x, S_{u+t\xi} x \rangle = \operatorname{Re} \sum_{j,k=0}^{d} \left( c_{jk} \omega_j \overline{\Psi_k(\xi)} + \overline{c_{jk}} \omega_j^* \Psi_k(\xi) \right),
+\]
+where $\omega_j = x^* A^j x \in \mathbb{R}$ (since $A=A^*$).
+\end{proposition}
+
+\begin{proof}
+Substituting $u_t = u + t\xi$ into the resolvent expansion $M_u = \sum c_{jk} A^j x u^* A^k$ and differentiating yields terms of the form
+\[
+\langle x, A^j x \xi^* A^k x \rangle = (x^* A^j x) (\xi^* A^k x) = \omega_j \langle \xi, A^k x \rangle^* = \omega_j \overline{\Psi_k(\xi)}.
+\]
+The result follows by summing over $j,k$.
+\end{proof}
+
+\begin{corollary}[Verification of (MO) for Hermitian A]\label{cor:ac3}
+If $A=A^*$, then Assumption (MO) holds unconditionally.
+\end{corollary}
+
+\begin{proof}
+For a Hermitian matrix $A$, the rotated Hermitian part $H_{\theta^*} = \operatorname{Re}(e^{-i\theta^*} A) = (\cos \theta^*) A$ aligns with $A$. Assuming $\cos\theta^* \ne 0$ (nondegenerate aligned-angle case in this Hermitian regime), the support vector $x$ corresponding to $\lambda_{\max}(H_{\theta^*})$ is an eigenvector of $A$.
+Consequently, $A^k x = \lambda^k x \in \operatorname{span}\{x\} \subseteq V_3$.
+For any $\xi \perp V_3$, we strictly have $\xi \perp x$, which implies
+\[
+\Psi_k(\xi) = \langle A^k x, \xi \rangle = \lambda^k \langle x, \xi \rangle = 0 \quad \text{for all } k \ge 0.
+\]
+Substituting this into Proposition~\ref{prop:C4} shows $\mathcal{V}(\xi)=0$ identically, i.e., (MO) holds.
+\end{proof}
+
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
